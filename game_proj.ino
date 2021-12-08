@@ -1,5 +1,6 @@
 #include "LedControl.h"
 #include <LiquidCrystal.h>
+#include <EEPROM.h>
 #include "lcd_manager.h"
 #include "pages.h"
 
@@ -72,6 +73,8 @@ volatile int gameState = menuState;
 unsigned long long gameOverTime = 0;
 
 // Menu
+const int eepromStart = 193;
+
 int scrollPosition = 0;
 int cursorPosition = 1;
 int lvl = 1;
@@ -183,6 +186,18 @@ void processButton(){
     }
     highscoreNames[racePlace] = dotName;
     highscoreValues[racePlace] = score;
+   
+    for(int i = 0; i < 3; i++){
+      EEPROM.update(eepromStart + (7 * i), highscoreValues[i] >> 24);
+      EEPROM.update(eepromStart + (7 * i) + 1, highscoreValues[i] >> 16);
+      EEPROM.update(eepromStart + (7 * i) + 2, highscoreValues[i] >> 8);
+      EEPROM.update(eepromStart + (7 * i) + 3, highscoreValues[i]);
+
+      EEPROM.update(eepromStart + (7 * i) + 4, highscoreNames[i][0]);
+      EEPROM.update(eepromStart + (7 * i) + 5, highscoreNames[i][1]);
+      EEPROM.update(eepromStart + (7 * i) + 6, highscoreNames[i][2]);
+    }
+   
     return;
   }
 
@@ -221,6 +236,14 @@ void setup()
   lc.setLed(0, 1, 1, HIGH);
 
   attachInterrupt(digitalPinToInterrupt(switchPin), handleInterrupt, FALLING);
+ 
+  for(int i = 0; i < 3; i++){
+    highscoreValues[i] = (EEPROM.read(eepromStart + (7 * i)) << 24) + (EEPROM.read(eepromStart + (7 * i) + 1) << 16) + (EEPROM.read(eepromStart + (7 * i) + 2) << 8) + EEPROM.read(eepromStart + (7 * i) + 3);
+    dotName[0] = EEPROM.read(eepromStart + (7 * i) + 4);
+    dotName[1] = EEPROM.read(eepromStart + (7 * i) + 5);
+    dotName[2] = EEPROM.read(eepromStart + (7 * i) + 6);
+    highscoreNames[i] = dotName;
+  }
 
   pinMode(buzzerPin, OUTPUT);
   tone(buzzerPin, 200, 10);
