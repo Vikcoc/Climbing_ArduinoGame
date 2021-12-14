@@ -1,6 +1,6 @@
 #include "pages.h"
 
-LineData::LineData(int index, String text){
+LineData::LineData(int index, String text) {
   this->index = index;
   this->text = text;
 }

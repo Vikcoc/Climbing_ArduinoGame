@@ -2,7 +2,7 @@
 #define PAGES_H
 #include <Arduino.h>
 
-struct LineData{
+struct LineData {
   int index;
   String text;
   LineData(int characterBegin, String text);
