@@ -85,18 +85,18 @@ LcdManager::LcdManager(int RS, int enable, int d4, int d5, int d6, int d7, int c
 }
 
 void LcdManager::setBrightness(int val) {
-  if (val > 255)
-    val = 255;
-  if (val < 0)
-    val = 0;
+  if (val > brightnessMax)
+    val = brightnessMax;
+  if (val < brightnessMin)
+    val = brightnessMin;
   analogWrite(brightnessPin, val);
 }
 
 void LcdManager::setContrast(int val) {
-  if (val > 255)
-    val = 255;
-  if (val < 0)
-    val = 0;
+  if (val > contrastMax)
+    val = contrastMax;
+  if (val < contrastMin)
+    val = contrastMin;
   analogWrite(contrastPin, val);
 }
 
@@ -128,8 +128,8 @@ void LcdManager::printMenu(int firstVisibleLine, int cursorLine) {
   if (firstVisibleLine < 0)
     firstVisibleLine = 0;
 
-  if (firstVisibleLine == 0 && cursorLine <= 1)
-    cursorLine = 1;
+  if (firstVisibleLine == 0 && cursorLine <= startDefaultCursor)
+    cursorLine = startDefaultCursor;
 
   if (firstVisibleLine > menuLength - displayHeight)
     firstVisibleLine = menuLength - displayHeight;
@@ -166,12 +166,12 @@ void LcdManager::printMenu(int firstVisibleLine, int cursorLine) {
 
 void LcdManager::printStartGame(int cursorLine, int lvl) {
   lcd.clear();
-  if (cursorLine < 0)
-    cursorLine = 0;
-  if (cursorLine > 1)
-    cursorLine = 1;
-  if (lvl < 1)
-    lvl = 1;
+  if (cursorLine < startMinCursor)
+    cursorLine = startMinCursor;
+  if (cursorLine > startDefaultCursor)
+    cursorLine = startDefaultCursor;
+  if (lvl < minLvl)
+    lvl = minLvl;
   if (lvl > maxLvl)
     lvl = maxLvl;
 
@@ -230,11 +230,23 @@ void LcdManager::printSettings(int firstVisibleLine, int cursorLine, int lcdBrig
     lcd.print(lcdContrast);
     lcd.print(">");
   }
+  else if (firstVisibleLine == 3) {
+    lcd.setCursor(settingsContrast.index, 0);
+    lcd.print(settingsContrast.text);
+    lcd.print(lcdContrast);
+    lcd.print(">");
+    lcd.setCursor(settingsReset.index, 1);
+    lcd.print(settingsReset.text);
+  }
   lcd.setCursor(1, cursorLine - firstVisibleLine);
   lcd.print(focusCharacter);
 }
 
-void LcdManager::printAbout() {
+void LcdManager::printAbout(bool firstTime) {
+  if (!firstTime) {
+    lcd.scrollDisplayLeft();
+    return;
+  }
   lcd.clear();
   lcd.setCursor(aboutTop.index, 0);
   lcd.print(aboutTop.text);

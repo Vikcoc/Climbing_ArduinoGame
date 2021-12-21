@@ -55,6 +55,8 @@ class LedMap {
 
     void reset();
     void setBrightness(int brightness);
+
+//    static const int letterPosMax = 2;
 };
 
 

@@ -5,6 +5,10 @@
 #include "pages.h"
 #include "led_game.h"
 
+/// I give up :)
+
+const int waitTime = 2000;
+
 //LED
 const int dinPin = 3;
 const int clockPin = 12;
@@ -36,6 +40,8 @@ bool refreshLcd = false;
 int lcdContrast = 92;
 int lcdBrightness = 128;
 
+bool aboutFirstTime = true;
+
 //BUZZER
 const int buzzerPin = 9;
 
@@ -56,6 +62,21 @@ const int minThreshold = 200;
 const int maxThreshold = 800;
 
 bool joystickMoved = false;
+
+const int joystickSampleFast = 100;
+const int joystickSampleMedium = 300;
+const int joystickSampleSlow = 1500;
+
+// Joystick
+
+void processJoystickInput(int joystickDirection);
+void processJoystickInputMenu(int joystickDirection);
+void processJoystickInputStartGame(int joystickDirection);
+void processJoystickInputSettings(int joystickDirection);
+void processJoystickInputHighscores(int joystickDirection);
+void processJoystickInputPlay(int joystickDirection);
+void processJoystickInputOver(int joystickDirection);
+void processJoystickInputName(int joystickDirection);
 
 
 // GameState
@@ -87,130 +108,207 @@ char dotName[3] = {'A', 'A', 'A'};
 int letterPos = 0;
 int racePlace = 0;
 
+// About
+unsigned long long aboutScrollTime = 0;
+unsigned aboutScrollWait = 500;
+
 // Game
 const int randomBlanks = 6;
 
 unsigned long score = 0;
 
+// Score
+unsigned long long lastScoreUpdate = 0;
+const int scoreUpdateInterval = 500;
+const int scoreMultiplayer = 8;
+
+// Button
+
+const int interruptCycle = 200;
+volatile unsigned long long lastInterrupt = 0;
+
+void handleInterrupt();
+void processButton();
+void processButtonMenu();
+void processButtonStartGame();
+void processButtonSettings();
+void processButtonAbout();
+void processButtonHighscores();
+void processButtonPlayState();
+void processButtonNameState();
+void processButtonScoreState();
+
+
+
 
 void processButton() {
   tone(buzzerPin, 400, 10);
   if (gameState == menuState) {
-    if (cursorPosition == startGameState) {
-      gameState = startGameState;
-      cursorPosition = 1;
-      refreshLcd = true;
-      return;
-    }
-    else if (cursorPosition == highscoresState) {
-      gameState = highscoresState;
-      refreshLcd = true;
-      scrollPosition = 0;
-      return;
-    }
-    else if (cursorPosition == settingsState) {
-      gameState = settingsState;
-      scrollPosition = 0;
-      cursorPosition = 1;
-      refreshLcd = true;
-      joystickSampleInterval = 100;
-      return;
-    }
-    else if (cursorPosition == aboutState) {
-      gameState = aboutState;
-      refreshLcd = true;
-      return;
-    }
+    processButtonMenu();
+    return;
   }
-  if (gameState == startGameState && cursorPosition == 0) {
-    gameState = menuState;
-    scrollPosition = 0;
-    cursorPosition = 1;
+  if (gameState == startGameState) {
+    processButtonStartGame();
+    return;
+  }
+  if (gameState == settingsState) {
+    processButtonSettings();
+    return;
+  }
+  if (gameState == aboutState) {
+    processButtonAbout();
+    return;
+  }
+  if (gameState == highscoresState) {
+    processButtonHighscores();
+    return;
+  }
+  if (gameState == playState) {
+    processButtonPlayState();
+    return;
+  }
+  if (gameState == nameState) {
+    processButtonNameState();
+    return;
+  }
+  if (gameState == scoreState) {
+    processButtonScoreState();
+    return;
+  }
+}
+
+void processButtonMenu() {
+  if (cursorPosition == startGameState) {
+    gameState = startGameState;
+    cursorPosition = lcd.startDefaultCursor;
     refreshLcd = true;
     return;
   }
-  if (gameState == startGameState && cursorPosition == 1) {
+  else if (cursorPosition == highscoresState) {
+    gameState = highscoresState;
+    refreshLcd = true;
+    scrollPosition = lcd.startDefaultScroll;
+    return;
+  }
+  else if (cursorPosition == settingsState) {
+    gameState = settingsState;
+    scrollPosition = lcd.startDefaultScroll;
+    cursorPosition = lcd.startDefaultCursor;
+    refreshLcd = true;
+    joystickSampleInterval = joystickSampleFast;
+    return;
+  }
+  else if (cursorPosition == aboutState) {
+    gameState = aboutState;
+    aboutFirstTime = true;
+    refreshLcd = true;
+    return;
+  }
+}
+
+void processButtonStartGame() {
+  if (cursorPosition == 0) {
+    gameState = menuState;
+    scrollPosition = lcd.startDefaultScroll;
+    cursorPosition = lcd.startDefaultCursor;
+    refreshLcd = true;
+    return;
+  }
+  if (cursorPosition == 1) {
     gameState = playState;
-    scrollPosition = 0;
-    cursorPosition = 1;
-    joystickSampleInterval = 100;
+    joystickSampleInterval = joystickSampleFast;
     refreshLcd = true;
     refreshLed = true;
     lc.reset();
     score = 0;
     return;
   }
-  if (gameState == settingsState && cursorPosition == 0) {
-    gameState = menuState;
-    scrollPosition = 0;
-    cursorPosition = 1;
-    joystickSampleInterval = 1500;
-    refreshLcd = true;
-    return;
-  }
-  if (gameState == aboutState) {
-    gameState = menuState;
-    scrollPosition = 0;
-    cursorPosition = 1;
-    refreshLcd = true;
-    return;
-  }
-  if (gameState == highscoresState) {
-    gameState = menuState;
-    scrollPosition = 0;
-    cursorPosition = 1;
-    refreshLcd = true;
-    return;
-  }
-  if (gameState == playState) {
-    //    int x[6] = {0,0,4,0,0,0};
-    //    lc.addObstacleLine(x);
-    //    int y[3] = {1,0,0};
-    //    lc.addBonusLine(y);
-    lc.jump();
-    refreshLcd = true;
-    return;
-  }
-  if (gameState == nameState) {
-    gameState = menuState;
-    scrollPosition = 0;
-    cursorPosition = 1;
-    refreshLcd = true;
-    joystickSampleInterval = 1500;
+}
 
-    for (int i = 2; i > racePlace; i--) {
-      highscoreNames[i] = highscoreNames[i - 1];
-      highscoreValues[i] = highscoreValues[i - 1];
-    }
-    highscoreNames[racePlace] = dotName;
-    highscoreValues[racePlace] = score;
-
+void processButtonSettings() {
+  if (cursorPosition == 0) {
+    gameState = menuState;
+    scrollPosition = lcd.startDefaultScroll;
+    cursorPosition = lcd.startDefaultCursor;
+    joystickSampleInterval = joystickSampleSlow;
+    refreshLcd = true;
+    return;
+  }
+  if (cursorPosition == 4) {
     for (int i = 0; i < 3; i++) {
-      EEPROM.update(eepromStart + (7 * i), highscoreValues[i] >> 24);
-      EEPROM.update(eepromStart + (7 * i) + 1, highscoreValues[i] >> 16);
-      EEPROM.update(eepromStart + (7 * i) + 2, highscoreValues[i] >> 8);
-      EEPROM.update(eepromStart + (7 * i) + 3, highscoreValues[i]);
+      EEPROM.update(eepromStart + (7 * i), 0);
+      EEPROM.update(eepromStart + (7 * i) + 1, 0);
+      EEPROM.update(eepromStart + (7 * i) + 2, 0);
+      EEPROM.update(eepromStart + (7 * i) + 3, 0);
 
-      EEPROM.update(eepromStart + (7 * i) + 4, highscoreNames[i][0]);
-      EEPROM.update(eepromStart + (7 * i) + 5, highscoreNames[i][1]);
-      EEPROM.update(eepromStart + (7 * i) + 6, highscoreNames[i][2]);
+      EEPROM.update(eepromStart + (7 * i) + 4, 'A');
+      EEPROM.update(eepromStart + (7 * i) + 5, 'A');
+      EEPROM.update(eepromStart + (7 * i) + 6, 'A');
+
+      highscoreNames[i] = "AAA";
+      highscoreValues[i] = 0;
     }
-
-    return;
-  }
-
-  if (gameState == scoreState) {
-    gameState = menuState;
-    scrollPosition = 0;
-    cursorPosition = 1;
-    refreshLcd = true;
-    joystickSampleInterval = 1500;
     return;
   }
 }
 
-const int interruptCycle = 100;
-volatile unsigned long long lastInterrupt = 0;
+void processButtonAbout() {
+  gameState = menuState;
+  scrollPosition = lcd.startDefaultScroll;
+  cursorPosition = lcd.startDefaultCursor;
+  refreshLcd = true;
+  return;
+}
+
+void processButtonHighscores() {
+  gameState = menuState;
+  scrollPosition = lcd.startDefaultScroll;
+  cursorPosition = lcd.startDefaultCursor;
+  refreshLcd = true;
+  return;
+}
+
+void processButtonPlayState() {
+  lc.jump();
+  refreshLcd = true;
+  return;
+}
+
+void processButtonNameState() {
+  gameState = menuState;
+  scrollPosition = lcd.startDefaultScroll;
+  cursorPosition = lcd.startDefaultCursor;
+  refreshLcd = true;
+  joystickSampleInterval = joystickSampleSlow;
+
+  for (int i = 2; i > racePlace; i--) {
+    highscoreNames[i] = highscoreNames[i - 1];
+    highscoreValues[i] = highscoreValues[i - 1];
+  }
+  highscoreNames[racePlace] = dotName;
+  highscoreValues[racePlace] = score;
+
+  for (int i = 0; i < 3; i++) {
+    EEPROM.update(eepromStart + (7 * i), highscoreValues[i] >> 24);
+    EEPROM.update(eepromStart + (7 * i) + 1, highscoreValues[i] >> 16);
+    EEPROM.update(eepromStart + (7 * i) + 2, highscoreValues[i] >> 8);
+    EEPROM.update(eepromStart + (7 * i) + 3, highscoreValues[i]);
+
+    EEPROM.update(eepromStart + (7 * i) + 4, highscoreNames[i][0]);
+    EEPROM.update(eepromStart + (7 * i) + 5, highscoreNames[i][1]);
+    EEPROM.update(eepromStart + (7 * i) + 6, highscoreNames[i][2]);
+  }
+  return;
+}
+
+void processButtonScoreState() {
+  gameState = menuState;
+  scrollPosition = lcd.startDefaultScroll;
+  cursorPosition = lcd.startDefaultCursor;
+  refreshLcd = true;
+  joystickSampleInterval = joystickSampleSlow;
+  return;
+}
 
 void handleInterrupt() {
   unsigned long long curr = millis();
@@ -243,7 +341,7 @@ void setup()
   tone(buzzerPin, 200, 10);
 
   lcd.printSplash();
-  delay(2000);
+  delay(waitTime);
 
   lcd.printMenu(scrollPosition, cursorPosition);
   gameState = menuState;
@@ -251,200 +349,234 @@ void setup()
 
 void processJoystickInput(int joystickDirection) {
   if (gameState == menuState) {
-    if ((joystickDirection & joystickDown) == joystickDown) {
-      if (cursorPosition < menuLength - 1)
-        cursorPosition = cursorPosition + 1;
-      if (scrollPosition < cursorPosition - 1)
-        scrollPosition = cursorPosition - 1;
-      refreshLcd = true;
-    }
-    if ((joystickDirection & joystickUp) == joystickUp) {
-      if (cursorPosition > 1)
-        cursorPosition = cursorPosition - 1;
-      else
-        scrollPosition = 0;
-      if (scrollPosition > cursorPosition)
-        scrollPosition = cursorPosition;
-      refreshLcd = true;
-    }
+    processJoystickInputMenu(joystickDirection);
     return;
   }
   else if (gameState == startGameState) {
-    if ((joystickDirection & joystickDown) == joystickDown) {
-      cursorPosition = 1;
-      refreshLcd = true;
-    }
-    if ((joystickDirection & joystickUp) == joystickUp) {
-      cursorPosition = 0;
-      refreshLcd = true;
-    }
-    if (cursorPosition == 1 && (joystickDirection & joystickLeft) == joystickLeft) {
-      lvl = lvl - 1;
-      refreshLcd = true;
-    }
-    if (cursorPosition == 1 && (joystickDirection & joystickRight) == joystickRight) {
-      lvl = lvl + 1;
-      refreshLcd = true;
-    }
-    if (lvl < 1)
-      lvl = maxLvl;
-    if (lvl > maxLvl)
-      lvl = 1;
+    processJoystickInputStartGame(joystickDirection);
     return;
   }
   else if (gameState == settingsState) {
-    if ((joystickDirection & joystickDown) == joystickDown) {
-      if (cursorPosition < settingsLength - 1)
-        cursorPosition = cursorPosition + 1;
-      if (scrollPosition < cursorPosition - 1)
-        scrollPosition = cursorPosition - 1;
-      refreshLcd = true;
-    }
-    if ((joystickDirection & joystickUp) == joystickUp) {
-      if (cursorPosition > 0)
-        cursorPosition = cursorPosition - 1;
-      if (scrollPosition > cursorPosition)
-        scrollPosition = cursorPosition;
-      refreshLcd = true;
-    }
-    if (cursorPosition == 1 && (joystickDirection & joystickLeft) == joystickLeft) {
-      lcdBrightness = lcdBrightness - 1;
-      refreshLcd = true;
-    }
-    if (cursorPosition == 2 && (joystickDirection & joystickLeft) == joystickLeft) {
-      ledBrightness = ledBrightness - 1;
-      refreshLcd = true;
-    }
-    if (cursorPosition == 3 && (joystickDirection & joystickLeft) == joystickLeft) {
-      lcdContrast = lcdContrast - 1;
-      refreshLcd = true;
-    }
-    if (cursorPosition == 1 && (joystickDirection & joystickRight) == joystickRight) {
-      lcdBrightness = lcdBrightness + 1;
-      refreshLcd = true;
-    }
-    if (cursorPosition == 2 && (joystickDirection & joystickRight) == joystickRight) {
-      ledBrightness = ledBrightness + 1;
-      refreshLcd = true;
-    }
-    if (cursorPosition == 3 && (joystickDirection & joystickRight) == joystickRight) {
-      lcdContrast = lcdContrast + 1;
-      refreshLcd = true;
-    }
-    if (lcdBrightness < 0)
-      lcdBrightness = lcdMax;
-    if (lcdBrightness > lcdMax)
-      lcdBrightness = 0;
-    if (ledBrightness < 0)
-      ledBrightness = ledMax;
-    if (ledBrightness > ledMax)
-      ledBrightness = 0;
-    if (lcdContrast < 0)
-      lcdContrast = lcdMax;
-    if (lcdContrast > lcdMax)
-      lcdContrast = 0;
-
-    lcd.setBrightness(lcdBrightness);
-    lcd.setContrast(lcdContrast);
-    lc.setBrightness(ledBrightness);
+    processJoystickInputSettings(joystickDirection);
+    return;
   }
   else if (gameState == highscoresState) {
-    if ((joystickDirection & joystickDown) == joystickDown) {
-      if (scrollPosition < 2)
-        scrollPosition = scrollPosition + 1;
-      refreshLcd = true;
-    }
-    if ((joystickDirection & joystickUp) == joystickUp) {
-      if (scrollPosition > 0)
-        scrollPosition = scrollPosition - 1;
-      refreshLcd = true;
-    }
+    processJoystickInputHighscores(joystickDirection);
     return;
   }
   else if (gameState == playState) {
-    if ((joystickDirection & joystickDown) == joystickDown) {
-      lc.moveDown();
-      refreshLed = true;
-    }
-    if ((joystickDirection & joystickUp) == joystickUp) {
-      lc.moveUp();
-      refreshLed = true;
-    }
-    if ((joystickDirection & joystickLeft) == joystickLeft) {
-      lc.moveLeft();
-      refreshLed = true;
-    }
-    if ((joystickDirection & joystickRight) == joystickRight) {
-      lc.moveRight();
-      refreshLed = true;
-    }
+    processJoystickInputPlay(joystickDirection);
     return;
   }
   else if (gameState == overState) {
-    unsigned long long tim = millis();
-    if (tim - gameOverTime < 2000)
-      return;
-    if (score > highscoreValues[0]) {
-      racePlace = 0;
-      gameState = nameState;
-    }
-    else if (score > highscoreValues[1]) {
-      racePlace = 1;
-      gameState = nameState;
-    }
-    else if (score > highscoreValues[2]) {
-      racePlace = 2;
-      gameState = nameState;
-    }
-    else
-      gameState = scoreState;
-
-    dotName[0] = 'A';
-    dotName[1] = 'A';
-    dotName[2] = 'A';
-    letterPos = 0;
-    refreshLcd = true;
-    joystickSampleInterval = 300;
+    processJoystickInputOver();
     return;
   }
   else if (gameState == nameState) {
-    if ((joystickDirection & joystickDown) == joystickDown) {
-      dotName[letterPos] = dotName[letterPos] - 1;
-      if (dotName[letterPos] < 'A')
-        dotName[letterPos] = 'Z';
-      refreshLcd = true;
-    }
-    if ((joystickDirection & joystickUp) == joystickUp) {
-      dotName[letterPos] = dotName[letterPos] + 1;
-      if (dotName[letterPos] > 'Z')
-        dotName[letterPos] = 'A';
-      refreshLcd = true;
-    }
-    if ((joystickDirection & joystickLeft) == joystickLeft) {
-      letterPos = letterPos - 1;
-      if (letterPos < 0)
-        letterPos = 2;
-      refreshLcd = true;
-    }
-    if ((joystickDirection & joystickRight) == joystickRight) {
-      letterPos = letterPos + 1;
-      if (letterPos > 2)
-        letterPos = 0;
-      refreshLcd = true;
-    }
+    processJoystickInputName(joystickDirection);
+    return;
   }
 }
 
-unsigned long long lastScoreUpdate = 0;
-const int scoreUpdateInterval = 500;
-void handleScore() {
+void processJoystickInputMenu(int joystickDirection) {
+  if ((joystickDirection & joystickDown) == joystickDown) {
+    if (cursorPosition < menuLength - 1)
+      cursorPosition = cursorPosition + 1;
+    if (scrollPosition < cursorPosition - 1)
+      scrollPosition = cursorPosition - 1;
+    refreshLcd = true;
+  }
+  if ((joystickDirection & joystickUp) == joystickUp) {
+    if (cursorPosition > 1)
+      cursorPosition = cursorPosition - 1;
+    else
+      scrollPosition = lcd.startDefaultScroll;
+    if (scrollPosition > cursorPosition)
+      scrollPosition = cursorPosition;
+    refreshLcd = true;
+  }
+}
+
+void processJoystickInputStartGame(int joystickDirection) {
+  if ((joystickDirection & joystickDown) == joystickDown) {
+    cursorPosition = lcd.startMaxCursor;
+    refreshLcd = true;
+  }
+  if ((joystickDirection & joystickUp) == joystickUp) {
+    cursorPosition = lcd.startMinCursor;
+    refreshLcd = true;
+  }
+  if (cursorPosition == lcd.startMaxCursor && (joystickDirection & joystickLeft) == joystickLeft) {
+    lvl = lvl - 1;
+    refreshLcd = true;
+  }
+  if (cursorPosition == lcd.startMaxCursor && (joystickDirection & joystickRight) == joystickRight) {
+    lvl = lvl + 1;
+    refreshLcd = true;
+  }
+  if (lvl < minLvl)
+    lvl = maxLvl;
+  if (lvl > maxLvl)
+    lvl = minLvl;
+}
+
+void processJoystickInputSettings(int joystickDirection) {
+  if ((joystickDirection & joystickDown) == joystickDown) {
+    if (cursorPosition < settingsLength - 1)
+      cursorPosition = cursorPosition + 1;
+    if (scrollPosition < cursorPosition - 1)
+      scrollPosition = cursorPosition - 1;
+    refreshLcd = true;
+  }
+  if ((joystickDirection & joystickUp) == joystickUp) {
+    if (cursorPosition > 0)
+      cursorPosition = cursorPosition - 1;
+    if (scrollPosition > cursorPosition)
+      scrollPosition = cursorPosition;
+    refreshLcd = true;
+  }
+  if (cursorPosition == lcd.lcdBrightnessCursor && (joystickDirection & joystickLeft) == joystickLeft) {
+    lcdBrightness = lcdBrightness - lcd.brightnessStep;
+    refreshLcd = true;
+  }
+  if (cursorPosition == 2 && (joystickDirection & joystickLeft) == joystickLeft) {
+    ledBrightness = ledBrightness - 1;
+    refreshLcd = true;
+  }
+  if (cursorPosition == lcd.lcdContrastCursor && (joystickDirection & joystickLeft) == joystickLeft) {
+    lcdContrast = lcdContrast - 1;
+    refreshLcd = true;
+  }
+  if (cursorPosition == lcd.lcdBrightnessCursor && (joystickDirection & joystickRight) == joystickRight) {
+    lcdBrightness = lcdBrightness + lcd.brightnessStep;
+    refreshLcd = true;
+  }
+  if (cursorPosition == 2 && (joystickDirection & joystickRight) == joystickRight) {
+    ledBrightness = ledBrightness + 1;
+    refreshLcd = true;
+  }
+  if (cursorPosition == lcd.lcdContrastCursor && (joystickDirection & joystickRight) == joystickRight) {
+    lcdContrast = lcdContrast + 1;
+    refreshLcd = true;
+  }
+  if (lcdBrightness < lcd.brightnessMin)
+    lcdBrightness = lcd.brightnessMax;
+  if (lcdBrightness > lcd.brightnessMax)
+    lcdBrightness = lcd.brightnessMin;
+  if (ledBrightness < 0)
+    ledBrightness = ledMax;
+  if (ledBrightness > ledMax)
+    ledBrightness = 0;
+  if (lcdContrast < lcd.contrastMin)
+    lcdContrast = lcd.contrastMax;
+  if (lcdContrast > lcd.contrastMax)
+    lcdContrast = lcd.contrastMin;
+
+  lcd.setBrightness(lcdBrightness);
+  lcd.setContrast(lcdContrast);
+  lc.setBrightness(ledBrightness);
+}
+
+void processJoystickInputHighscores(int joystickDirection) {
+  if ((joystickDirection & joystickDown) == joystickDown) {
+    if (scrollPosition < lcd.highscoresMaxScroll)
+      scrollPosition = scrollPosition + 1;
+    refreshLcd = true;
+  }
+  if ((joystickDirection & joystickUp) == joystickUp) {
+    if (scrollPosition > lcd.startDefaultScroll)
+      scrollPosition = scrollPosition - 1;
+    refreshLcd = true;
+  }
+}
+
+void processJoystickInputPlay(int joystickDirection) {
+  if ((joystickDirection & joystickDown) == joystickDown) {
+    lc.moveDown();
+    refreshLed = true;
+  }
+  if ((joystickDirection & joystickUp) == joystickUp) {
+    lc.moveUp();
+    refreshLed = true;
+  }
+  if ((joystickDirection & joystickLeft) == joystickLeft) {
+    lc.moveLeft();
+    refreshLed = true;
+  }
+  if ((joystickDirection & joystickRight) == joystickRight) {
+    lc.moveRight();
+    refreshLed = true;
+  }
+}
+
+void processJoystickInputOver() {
+  unsigned long long tim = millis();
+  if (tim - gameOverTime < waitTime)
+    return;
+  if (score > highscoreValues[0]) {
+    racePlace = 0;
+    gameState = nameState;
+  }
+  else if (score > highscoreValues[1]) {
+    racePlace = 1;
+    gameState = nameState;
+  }
+  else if (score > highscoreValues[2]) {
+    racePlace = 2;
+    gameState = nameState;
+  }
+  else
+    gameState = scoreState;
+
+  dotName[0] = 'A';
+  dotName[1] = 'A';
+  dotName[2] = 'A';
+  letterPos = 0;
+  refreshLcd = true;
+  joystickSampleInterval = joystickSampleMedium;
+}
+
+void processJoystickInputName(int joystickDirection) {
+  if ((joystickDirection & joystickDown) == joystickDown) {
+    dotName[letterPos] = dotName[letterPos] - 1;
+    if (dotName[letterPos] < 'A')
+      dotName[letterPos] = 'Z';
+    refreshLcd = true;
+  }
+  if ((joystickDirection & joystickUp) == joystickUp) {
+    dotName[letterPos] = dotName[letterPos] + 1;
+    if (dotName[letterPos] > 'Z')
+      dotName[letterPos] = 'A';
+    refreshLcd = true;
+  }
+  if ((joystickDirection & joystickLeft) == joystickLeft) {
+    letterPos = letterPos - 1;
+    if (letterPos < 0)
+      letterPos = lcd.letterPosMax;
+    refreshLcd = true;
+  }
+  if ((joystickDirection & joystickRight) == joystickRight) {
+    letterPos = letterPos + 1;
+    if (letterPos > lcd.letterPosMax)
+      letterPos = 0;
+    refreshLcd = true;
+  }
+}
+
+void handleScore() { // and scroll game and add obstacles
   if (gameState != playState)
     return;
+
+  if (lc.itCollides()) {
+    gameState = overState;
+    gameOverTime = millis();
+  }
+
   unsigned long long tim = millis();
   if (tim - lastScoreUpdate < scoreUpdateInterval)
     return;
   lastScoreUpdate = tim;
-  score = score + 8 *  lvl;
+  score = score + scoreMultiplayer *  lvl;
   refreshLcd = true;
   lc.clockMap();
   int x[6] = {0, 0, 0, 0, 0, 0};
@@ -455,14 +587,9 @@ void handleScore() {
     x[i] = aux;
   }
   lc.addObstacleLine(x);
-  //  lcd.debugPrint(lc.leftCorner, lc.itCollides());
-
-  if (lc.itCollides()) {
-    gameState = overState;
-    gameOverTime = millis();
-  }
   refreshLed = true;
 }
+
 
 void handleLcd() {
   if (!refreshLcd)
@@ -481,7 +608,13 @@ void handleLcd() {
     return;
   }
   else if (gameState == aboutState) {
-    lcd.printAbout();
+    unsigned long long tim = millis();
+    refreshLcd = true;
+    if (tim - aboutScrollTime < aboutScrollWait)
+      return;
+    aboutScrollTime = tim;
+    lcd.printAbout(aboutFirstTime);
+    aboutFirstTime = false;
     return;
   }
   else if (gameState == highscoresState) {
@@ -512,8 +645,6 @@ void handleLed() {
     return;
   refreshLed = false;
   lc.redrawMap();
-  //  lcd.debugPrint(lc.leftCorner);
-
 }
 
 int getJoystickDirection() {

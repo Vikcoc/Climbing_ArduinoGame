@@ -25,11 +25,13 @@ extern const LineData menu[5];
 extern const LineData startGameBack;
 extern const LineData startGameStart;
 extern const int maxLvl;
+extern const int minLvl;
 
 extern const LineData settingsBack;
 extern const LineData settingsBrightness;
 extern const LineData matrixBrightness;
 extern const LineData settingsContrast;
+extern const LineData settingsReset;
 
 extern const int settingsLength;
 extern const int lcdMax;
