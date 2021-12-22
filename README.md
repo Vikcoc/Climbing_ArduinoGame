@@ -92,5 +92,5 @@ The code got better as i wrote it, but I will not go back to rewrite the other p
 
 </details>
 
-##Inspiration
+## Inspiration
 [![SC2 Video](https://i.ytimg.com/vi/WZRC0naV2Kc/maxresdefault.jpg)](https://youtu.be/WZRC0naV2Kc)
