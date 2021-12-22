@@ -9,6 +9,15 @@
 
 const int waitTime = 2000;
 
+const int noteC4 = 262;
+const int noteC4Duration = 50;
+
+const int noteD6 = 1175;
+const int noteD6Duration = 50;
+
+const int noteF5 = 698;
+const int noteF5Duration = 50;
+
 //LED
 const int dinPin = 3;
 const int clockPin = 12;
@@ -58,7 +67,7 @@ const int joystickRight = 8;
 unsigned joystickSampleInterval = 1500;
 unsigned long long lastJoystickSample = 0;
 
-const int minThreshold = 200;
+const int minThreshold = 450;
 const int maxThreshold = 800;
 
 bool joystickMoved = false;
@@ -113,7 +122,7 @@ unsigned long long aboutScrollTime = 0;
 unsigned aboutScrollWait = 500;
 
 // Game
-const int randomBlanks = 6;
+const int randomBlanks = 8;
 
 unsigned long score = 0;
 
@@ -142,7 +151,7 @@ void processButtonScoreState();
 
 
 void processButton() {
-  tone(buzzerPin, 400, 10);
+  tone(buzzerPin, noteD6, noteD6Duration);
   if (gameState == menuState) {
     processButtonMenu();
     return;
@@ -338,7 +347,7 @@ void setup()
   }
 
   pinMode(buzzerPin, OUTPUT);
-  tone(buzzerPin, 200, 10);
+  tone(buzzerPin, noteC4, noteC4Duration);
 
   lcd.printSplash();
   delay(waitTime);
@@ -348,6 +357,8 @@ void setup()
 }
 
 void processJoystickInput(int joystickDirection) {
+  if(joystickDirection != 0)
+    tone(buzzerPin, noteF5, noteF5Duration);
   if (gameState == menuState) {
     processJoystickInputMenu(joystickDirection);
     return;
@@ -575,6 +586,9 @@ void handleScore() { // and scroll game and add obstacles
   unsigned long long tim = millis();
   if (tim - lastScoreUpdate < scoreUpdateInterval)
     return;
+
+  tone(buzzerPin, noteC4, noteC4Duration);
+  
   lastScoreUpdate = tim;
   score = score + scoreMultiplayer *  lvl;
   refreshLcd = true;
