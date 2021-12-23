@@ -47,6 +47,8 @@ you can:
 
 Video
 [![SC2 Video](https://i.ytimg.com/vi/b7u-0B6ePrE/maxresdefault.jpg)](https://youtu.be/b7u-0B6ePrE)
+Gameplay video
+[![SC2 Video](https://i.ytimg.com/vi/wsNuujDekLU/maxresdefault.jpg)](https://youtu.be/wsNuujDekLU)
 
 </details>
 
@@ -93,4 +95,5 @@ The code got better as i wrote it, but I will not go back to rewrite the other p
 </details>
 
 ## Inspiration
+Video of the game that inspired this project
 [![SC2 Video](https://i.ytimg.com/vi/WZRC0naV2Kc/maxresdefault.jpg)](https://youtu.be/WZRC0naV2Kc)
